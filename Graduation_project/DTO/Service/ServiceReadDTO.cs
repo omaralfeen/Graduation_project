@@ -26,5 +26,6 @@ namespace Graduation_project.DTO.Service
         [Required]
         [StringLength(100, MinimumLength = 3)]
         public string ClientName { get; set; }
+        public string? ImageUrl { get; set; }
     }
 }

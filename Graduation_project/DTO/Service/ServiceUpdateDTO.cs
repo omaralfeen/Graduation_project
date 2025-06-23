@@ -16,6 +16,7 @@ namespace Graduation_project.DTO.Service
         [Required]
         [Range(1, double.MaxValue)]
         public decimal Budget { get; set; }
+        public IFormFile? ImageFile { get; set; }
 
     }
 

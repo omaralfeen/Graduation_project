@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Graduation_project.Controllers
 {
@@ -18,7 +19,7 @@ namespace Graduation_project.Controllers
             _context = context;
         }
         //----------------------------------------------
-        [Authorize(Roles = "Craftsman")]
+        [Authorize(Roles = "Craftsman,Client")]
         [HttpGet("View-Services")]
         public async Task<IActionResult> GetServices()
         {
@@ -31,7 +32,8 @@ namespace Graduation_project.Controllers
                 Description = service.Description,
                 Budget = service.Budget,
                 CreatedAt = service.CreatedAt,
-                ClientName = service.Client?.Name 
+                ClientName = service.Client?.Name ,
+                ImageUrl = service.ImageUrl,
             }).ToList();
 
             return Ok(serviceReadDTOs); 
@@ -54,12 +56,13 @@ namespace Graduation_project.Controllers
 
             var serviceReadDTO = new ServiceReadDTO
             {
-                Id = service.Id,
                 Title = service.Title,
                 Description = service.Description,
                 Budget = service.Budget,
                 CreatedAt = service.CreatedAt,
-                ClientName = service.Client.Name
+                ClientName = service.Client.Name,
+                ImageUrl = service.ImageUrl
+                
             };
 
             return Ok(serviceReadDTO);
@@ -68,17 +71,39 @@ namespace Graduation_project.Controllers
         //------------------------------------------------
         [Authorize(Roles = "Client")]
         [HttpPost("Create-Service")]
-        public async Task<IActionResult> CreateService(ServiceCreateDTO serviceDto)
+        public async Task<IActionResult> CreateService([FromForm] ServiceCreateDTO serviceDto)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var client = await _context.Clients.FindAsync(serviceDto.ClientId);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
+
             if (client == null)
             {
-                return NotFound($"Client with ID {serviceDto.ClientId} was not found.");
+                return NotFound("المستخدم غير موجود كعميل.");
+            }
+
+            string? imageUrl = null;
+
+            // رفع الصورة (لو فيه صورة)
+            if (serviceDto.ImageFile != null && serviceDto.ImageFile.Length > 0)
+            {
+                var folderPath = Path.Combine("wwwroot", "Images");
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
+
+                var fileName = $"{Guid.NewGuid()}_{serviceDto.ImageFile.FileName}";
+                var filePath = Path.Combine(folderPath, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await serviceDto.ImageFile.CopyToAsync(stream);
+                }
+
+                imageUrl = $"/Images/{fileName}";
             }
 
             var service = new Service
@@ -87,7 +112,8 @@ namespace Graduation_project.Controllers
                 Description = serviceDto.Description,
                 Budget = serviceDto.Budget,
                 CreatedAt = DateTime.UtcNow,
-                ClientId = serviceDto.ClientId
+                ClientId = client.Id,
+                ImageUrl = imageUrl
             };
 
             await _context.Services.AddAsync(service);
@@ -95,61 +121,104 @@ namespace Graduation_project.Controllers
 
             var serviceReadDto = new ServiceReadDTO
             {
-                Id = service.Id,
                 Title = service.Title,
                 Description = service.Description,
                 Budget = service.Budget,
                 CreatedAt = service.CreatedAt,
+                ImageUrl=service.ImageUrl,
                 ClientName = client.Name
             };
 
             return CreatedAtAction(nameof(GetServiceById), new { id = service.Id }, serviceReadDto);
         }
+
+
+
         //================================
         //--------------------
-
-        //Update the service
         [Authorize(Roles = "Client")]
         [HttpPut("Update-Service/{id}")]
-        public async Task<IActionResult> UpdateService(int id, ServiceUpdateDTO serviceDto)
+        public async Task<IActionResult> UpdateService(int id, [FromForm] ServiceUpdateDTO serviceDto)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
-            var serviceFromDB = await _context.Services.FirstOrDefaultAsync(x => x.Id == id);
-            if (serviceFromDB == null)
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
+            if (client == null)
+                return Unauthorized("المستخدم غير موجود كعميل.");
+
+            var service = await _context.Services.FirstOrDefaultAsync(s => s.Id == id && s.ClientId == client.Id);
+            if (service == null)
+                return NotFound("الخدمة غير موجودة أو لا تملك صلاحية تعديلها.");
+
+            // تعديل البيانات
+            service.Title = serviceDto.Title;
+            service.Description = serviceDto.Description;
+            service.Budget = serviceDto.Budget;
+
+            if (serviceDto.ImageFile != null && serviceDto.ImageFile.Length > 0)
             {
-                return NotFound($"Service with ID {id} was not found.");
-            }
+                var folderPath = Path.Combine("wwwroot", "Images");
+                if (!Directory.Exists(folderPath))
+                    Directory.CreateDirectory(folderPath);
 
-            serviceFromDB.Title = serviceDto.Title;
-            serviceFromDB.Description = serviceDto.Description;
-            serviceFromDB.Budget = serviceDto.Budget;
+                var fileName = $"{Guid.NewGuid()}_{serviceDto.ImageFile.FileName}";
+                var filePath = Path.Combine(folderPath, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await serviceDto.ImageFile.CopyToAsync(stream);
+                }
+
+                if (!string.IsNullOrEmpty(service.ImageUrl))
+                {
+                    var oldPath = Path.Combine("wwwroot", service.ImageUrl.TrimStart('/'));
+                    if (System.IO.File.Exists(oldPath))
+                    {
+                        System.IO.File.Delete(oldPath);
+                    }
+                }
+
+                service.ImageUrl = $"/Images/{fileName}";
+            }
 
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new
+            {
+                message = "تم تحديث الخدمة بنجاح",
+                serviceId = service.Id
+            });
         }
 
-        //===========================
 
         //Delete the service
         [Authorize(Roles = "Client")]
         [HttpDelete("Delete-Service/{id}")]
         public async Task<IActionResult> DeleteService(int id)
         {
-            var service = await _context.Services.Include(e=>e.Offers).FirstOrDefaultAsync(x => x.Id == id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
+            if (client == null)
+            {
+                return NotFound("المستخدم غير موجود كعميل.");
+            }
+
+            var service = await _context.Services
+                .Include(s => s.Offers)
+                .FirstOrDefaultAsync(s => s.Id == id && s.ClientId == client.Id);
 
             if (service == null)
             {
-                return NotFound($"Service with ID {id} was not found.");
+                return NotFound($"الخدمة غير موجودة أو لا تملك صلاحية حذفها.");
             }
 
-            if (service.Offers.Any()) 
+            if (service.Offers.Any())
             {
-                return BadRequest("Cannot delete the service because it has associated offers.");
+                return BadRequest("لا يمكن حذف الخدمة لأنها تحتوي على عروض.");
             }
 
             _context.Services.Remove(service);
@@ -157,7 +226,8 @@ namespace Graduation_project.Controllers
 
             return NoContent();
         }
-        
+
+
 
 
 

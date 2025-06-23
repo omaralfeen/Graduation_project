@@ -120,7 +120,7 @@ namespace Graduation_project
                 app.UseAuthorization();
 
                 app.UseHttpsRedirection();
-
+                app.UseStaticFiles();
 
                 app.MapControllers();
 

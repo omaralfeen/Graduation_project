@@ -16,8 +16,6 @@ namespace Graduation_project.DTO.Service
         [Required]
         [Range(1, double.MaxValue, ErrorMessage = "يجب أن يكون الميزانية قيمة موجبة.")]
         public decimal Budget { get; set; }
-        //--
-        [Required]
-        public int ClientId { get; set; }
+        public IFormFile? ImageFile { get; set; }
     }
 }

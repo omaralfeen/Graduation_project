@@ -1,5 +1,6 @@
 ﻿using Graduation_project.DTO.Authentication;
 using Graduation_project.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -47,6 +48,11 @@ namespace Graduation_project.Controllers
                 {
                     return BadRequest("الرقم القومي مستخدم من قبل");
                 }
+                var existingUser = await userManager.FindByEmailAsync(dtoFromRequst.Email);
+                if (existingUser != null)
+                {
+                    return BadRequest("هذا البريد الإلكتروني مستخدم بالفعل.");
+                }
 
                 var user = new ApplicationUser()
                 {
@@ -93,6 +99,11 @@ namespace Graduation_project.Controllers
         {
             if (ModelState.IsValid)
             {
+                var existingUser = await userManager.FindByEmailAsync(dtoFromRequst.Email);
+                if (existingUser != null)
+                {
+                    return BadRequest("هذا البريد الإلكتروني مستخدم بالفعل.");
+                }
                 var user = new ApplicationUser
                 {
                     UserName = dtoFromRequst.UserName,
@@ -135,7 +146,7 @@ namespace Graduation_project.Controllers
         //--------------------------------------------------------------
         #region Login
         [HttpPost("Login")]
-        public async Task<IActionResult>Login(LoginDTO dto)
+        public async Task<IActionResult> Login(LoginDTO dto)
         {
             if (ModelState.IsValid)
             {
@@ -150,11 +161,11 @@ namespace Graduation_project.Controllers
                     if (await userManager.CheckPasswordAsync(user, dto.Password))
                     {
                         //--
-                        var cliams=new List<Claim>();
+                        var cliams = new List<Claim>();
                         cliams.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
-                        cliams.Add(new Claim(ClaimTypes.Name,user.UserName));
-                        cliams.Add(new Claim(ClaimTypes.Email,user.Email));
-                        cliams.Add(new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()));
+                        cliams.Add(new Claim(ClaimTypes.Name, user.UserName));
+                        cliams.Add(new Claim(ClaimTypes.Email, user.Email));
+                        cliams.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
                         var roles = await userManager.GetRolesAsync(user);
                         foreach (var item in roles)
                         {
@@ -162,20 +173,20 @@ namespace Graduation_project.Controllers
                         }
                         //--
                         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JWT:SecretKey"]));
-                        var signingCredentials = new SigningCredentials(key,SecurityAlgorithms.HmacSha256);
+                        var signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
                         //--
                         var token = new JwtSecurityToken
                             (
-                            claims:cliams,
+                            claims: cliams,
                             issuer: config["JWT:Issuer"],
                             audience: config["JWT:Audience"],
-                            expires:DateTime.Now.AddHours(1),
-                            signingCredentials:signingCredentials
+                            expires: DateTime.Now.AddDays(1),
+                            signingCredentials: signingCredentials
                             );
                         var _token = new
                         {
-                            token= new JwtSecurityTokenHandler().WriteToken(token),
-                            expiration=token.ValidTo,
+                            token = new JwtSecurityTokenHandler().WriteToken(token),
+                            expiration = token.ValidTo,
                         };
                         return Ok(_token);
                     }
@@ -184,11 +195,12 @@ namespace Graduation_project.Controllers
                         return Unauthorized();
                     }
                 }
-                
+
             }
             return BadRequest(ModelState);
-            #endregion
-            //--------------------------------------------------------------
+        }
+        #endregion
+        //--------------------------------------------------------------
         #region Create Roles
         //[HttpPost("CreateRoles")]
         //public async Task<IActionResult> CreateRoles()
@@ -206,6 +218,83 @@ namespace Graduation_project.Controllers
         //    return Ok("Roles Created Successfully");
         //}
         #endregion
+        //-------------------------------------------------------------
+        #region Image
+        // upload image
+        [Authorize]
+        [HttpPost("Upload_ProfileImage")]
+        public async Task<IActionResult> UploadProfileImage(IFormFile imageFile)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = await userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return NotFound("المستخدم غير موجود.");
+
+            if (imageFile == null || imageFile.Length == 0)
+                return BadRequest("يرجى اختيار صورة صحيحة");
+
+            var folderPath = Path.Combine("wwwroot", "Images");
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            var fileName = $"{Guid.NewGuid()}_{imageFile.FileName}";
+            var filePath = Path.Combine(folderPath, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await imageFile.CopyToAsync(stream);
+            }
+
+            user.ProfileImage= $"/Images/{fileName}";
+            await userManager.UpdateAsync(user);
+
+            return Ok(new { imageUrl = user.ProfileImage });
         }
+        //----------------------------------------------
+        [Authorize]
+        //update image
+        [HttpPost("Update_ProfileImage")]
+        public async Task<IActionResult> UpdateProfileImage(IFormFile imageFile)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = await userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return NotFound("المستخدم غير موجود.");
+
+            if (imageFile == null || imageFile.Length == 0)
+                return BadRequest("يرجى اختيار صورة صحيحة");
+
+            var folderPath = Path.Combine("wwwroot", "Images");
+
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            if (!string.IsNullOrEmpty(user.ProfileImage))
+            {
+                var oldImagePath = Path.Combine("wwwroot", user.ProfileImage.TrimStart('/'));
+
+                if (System.IO.File.Exists(oldImagePath))
+                    System.IO.File.Delete(oldImagePath);
+            }
+
+            var fileName = $"{Guid.NewGuid()}_{imageFile.FileName}";
+            var filePath = Path.Combine(folderPath, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await imageFile.CopyToAsync(stream);
+            }
+
+            user.ProfileImage = $"/Images/{fileName}";
+            await userManager.UpdateAsync(user);
+
+            return Ok(new { imageUrl = user.ProfileImage });
+        }
+
+
+        #endregion
+
     }
 }

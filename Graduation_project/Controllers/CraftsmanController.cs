@@ -26,10 +26,10 @@ namespace Graduation_project.Controllers
             var result = craftsmans.Select(c => new DisplayCraftsmanDTO
             {
                 Name = c.Name,
-                National_No = c.National_No,
                 Craft_Type = c.Craft_Type,
                 Email = c.User?.Email,
-                PhoneNumber = c.User?.PhoneNumber
+                PhoneNumber = c.User?.PhoneNumber,
+                ProfileImage = c.User.ProfileImage,
             }).ToList();
 
             return Ok(result);
@@ -46,10 +46,10 @@ namespace Graduation_project.Controllers
             var result = new DisplayCraftsmanDTO
             {
                 Name = c.Name,
-                National_No = c.National_No,
                 Craft_Type = c.Craft_Type,
                 Email = c.User?.Email,
-                PhoneNumber = c.User?.PhoneNumber
+                PhoneNumber = c.User?.PhoneNumber,
+                ProfileImage = c.User.ProfileImage,
             };
 
             return Ok(result);
@@ -75,10 +75,10 @@ namespace Graduation_project.Controllers
             var result = findCraftsman.Select(c => new DisplayCraftsmanDTO
             {
                 Name = c.Name,
-                National_No = c.National_No,
                 Craft_Type = c.Craft_Type,
                 Email = c.User?.Email,
-                PhoneNumber = c.User?.PhoneNumber
+                PhoneNumber = c.User?.PhoneNumber,
+                ProfileImage = c.User?.ProfileImage,
             }).ToList();
 
             return Ok(result);

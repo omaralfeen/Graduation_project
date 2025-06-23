@@ -22,6 +22,7 @@ namespace Graduation_project.Models
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string? ImageUrl {  get; set; }
         //--
         [ForeignKey("Client")]
         public int ClientId { get; set; }
