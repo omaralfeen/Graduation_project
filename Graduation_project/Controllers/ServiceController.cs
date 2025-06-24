@@ -23,7 +23,10 @@ namespace Graduation_project.Controllers
         [HttpGet("View-Services")]
         public async Task<IActionResult> GetServices()
         {
-            var services = await _context.Services.Include(c => c.Client).ToListAsync();
+            var services = await _context.Services
+                .Include(s => s.Client)
+                    .ThenInclude(c => c.User)
+                .ToListAsync();
 
             var serviceReadDTOs = services.Select(service => new ServiceReadDTO
             {
@@ -32,12 +35,17 @@ namespace Graduation_project.Controllers
                 Description = service.Description,
                 Budget = service.Budget,
                 CreatedAt = service.CreatedAt,
-                ClientName = service.Client?.Name ,
+                Type=service.Type.ToString(),
+                ClientName = service.Client?.Name,
+                Address = service.Client?.Address,
+                Email = service.Client?.User?.Email,
+                PhoneNumber = service.Client?.User?.PhoneNumber,
                 ImageUrl = service.ImageUrl,
             }).ToList();
 
-            return Ok(serviceReadDTOs); 
+            return Ok(serviceReadDTOs);
         }
+
         //======================
         //------------------------------------------------
         //get service by id
@@ -59,6 +67,7 @@ namespace Graduation_project.Controllers
                 Title = service.Title,
                 Description = service.Description,
                 Budget = service.Budget,
+                Type = service.Type.ToString(),
                 CreatedAt = service.CreatedAt,
                 ClientName = service.Client.Name,
                 ImageUrl = service.ImageUrl
@@ -79,7 +88,10 @@ namespace Graduation_project.Controllers
             }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
+            var client = await _context.Clients
+                .Include(c => c.User)
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+
 
             if (client == null)
             {
@@ -111,9 +123,11 @@ namespace Graduation_project.Controllers
                 Title = serviceDto.Title,
                 Description = serviceDto.Description,
                 Budget = serviceDto.Budget,
+                Type = serviceDto.Type,
                 CreatedAt = DateTime.UtcNow,
                 ClientId = client.Id,
-                ImageUrl = imageUrl
+                ImageUrl = imageUrl,
+                
             };
 
             await _context.Services.AddAsync(service);
@@ -124,9 +138,14 @@ namespace Graduation_project.Controllers
                 Title = service.Title,
                 Description = service.Description,
                 Budget = service.Budget,
+                Type = service.Type.ToString(),
                 CreatedAt = service.CreatedAt,
                 ImageUrl=service.ImageUrl,
-                ClientName = client.Name
+                ClientName = client.Name,
+                Address=client.Address,
+                Email=client.User.Email,
+                PhoneNumber=client.User.PhoneNumber,
+
             };
 
             return CreatedAtAction(nameof(GetServiceById), new { id = service.Id }, serviceReadDto);
@@ -157,6 +176,7 @@ namespace Graduation_project.Controllers
             service.Title = serviceDto.Title;
             service.Description = serviceDto.Description;
             service.Budget = serviceDto.Budget;
+            service.Type = serviceDto.Type;
 
             if (serviceDto.ImageFile != null && serviceDto.ImageFile.Length > 0)
             {

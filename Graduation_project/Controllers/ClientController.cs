@@ -20,7 +20,7 @@ namespace Graduation_project.Controllers
         public async Task<IActionResult> GetClients()
         {
             var clients = await _context.Clients
-                .Include(c => c.User) // مهم علشان نجيب الإيميل ورقم الهاتف
+                .Include(c => c.User) 
                 .ToListAsync();
 
             var result = clients.Select(c => new DisplayClientDTO

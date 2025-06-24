@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿
+using Graduation_project.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Graduation_project.Models
@@ -18,7 +20,7 @@ namespace Graduation_project.Models
         public string National_No { get; set; }
         //--
         [Required]
-        public string Craft_Type { get; set; }
+        public CraftType Craft_Type { get; set; }
         //--
 
         [ForeignKey("User")]
@@ -28,5 +30,10 @@ namespace Graduation_project.Models
 
         //
         public virtual List<Offer> Offers { get; set; } = new List<Offer>();
+
+        //[Required]
+        
+        
+
     }
 }

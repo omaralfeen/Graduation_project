@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Graduation_project.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Graduation_project.DTO.Service
 {
@@ -12,6 +13,7 @@ namespace Graduation_project.DTO.Service
         [Required]
         [StringLength(500)]
         public string Description { get; set; }
+        public ServiceType Type { get; set; }
 
         [Required]
         [Range(1, double.MaxValue)]

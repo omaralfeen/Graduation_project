@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Graduation_project.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Graduation_project.DTO.Craftsman
 {
@@ -9,7 +10,7 @@ namespace Graduation_project.DTO.Craftsman
         public string Name { get; set; }      
         //--
         [Required]
-        public string Craft_Type { get; set; }
+        public CraftType Craft_Type { get; set; }
         [Required(ErrorMessage = "البريد الإلكتروني مطلوب.")]
         [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صالح.")]
         public string Email { get; set; }

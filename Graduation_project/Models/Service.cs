@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using Graduation_project.Enums;
 
 namespace Graduation_project.Models
 {
@@ -19,6 +20,9 @@ namespace Graduation_project.Models
         [Required]
         [Range(1, double.MaxValue, ErrorMessage = "يجب أن يكون الميزانية قيمة موجبة.")]
         public decimal Budget { get; set; }
+        [Required]
+        public ServiceType Type { get; set; }
+
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -29,5 +33,7 @@ namespace Graduation_project.Models
         public virtual Client Client { get; set; }
         //--
         public virtual List<Offer> Offers { get; set; } = new List<Offer>();
+
+       
     }
 }

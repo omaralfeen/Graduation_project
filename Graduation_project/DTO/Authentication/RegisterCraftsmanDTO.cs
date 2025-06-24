@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Graduation_project.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Graduation_project.DTO.Authentication
 {
@@ -12,8 +13,8 @@ namespace Graduation_project.DTO.Authentication
         [StringLength(14, MinimumLength = 14, ErrorMessage = "الرقم القومي يجب أن يكون 14 رقماً.")]
         public string National_No { get; set; }
         //--
-        [Required(ErrorMessage = "نوع الحرفة مطلوب.")]
-        public string CraftType { get; set; }
+        [Required]
+        public CraftType Craft_Type { get; set; }
         //--
         [Required(ErrorMessage = "البريد الإلكتروني مطلوب.")]
         [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صالح.")]

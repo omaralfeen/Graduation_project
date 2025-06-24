@@ -38,7 +38,7 @@ namespace Graduation_project.Controllers
         #region Register => Craftsman
 
         [HttpPost("Register_Craftsman")]
-        public async Task<IActionResult> Register(RegisterCraftsmanDTO dtoFromRequst)
+        public async Task<IActionResult> Register([FromForm] RegisterCraftsmanDTO dtoFromRequst)
         {
             if (ModelState.IsValid)
             {
@@ -73,7 +73,7 @@ namespace Graduation_project.Controllers
                     var craftsman = new Craftsman()
                     {
                         Name = dtoFromRequst.UserName,
-                        Craft_Type = dtoFromRequst.CraftType,
+                        Craft_Type = dtoFromRequst.Craft_Type,
                         National_No = dtoFromRequst.National_No,
                         UserId = user.Id
                     };
@@ -95,7 +95,7 @@ namespace Graduation_project.Controllers
         #region Register => Client
 
         [HttpPost("Register_Client")]
-        public async Task<IActionResult> Register(RegisterClientDTO dtoFromRequst)
+        public async Task<IActionResult> Register([FromForm]RegisterClientDTO dtoFromRequst)
         {
             if (ModelState.IsValid)
             {
@@ -146,7 +146,7 @@ namespace Graduation_project.Controllers
         //--------------------------------------------------------------
         #region Login
         [HttpPost("Login")]
-        public async Task<IActionResult> Login(LoginDTO dto)
+        public async Task<IActionResult> Login([FromForm] LoginDTO dto)
         {
             if (ModelState.IsValid)
             {

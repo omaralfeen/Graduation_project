@@ -16,6 +16,19 @@ namespace Graduation_project.Models
         {
 
         }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Craftsman>()
+                .Property(c => c.Craft_Type)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Service>()
+                .Property(s => s.Type)
+                .HasConversion<string>();
+        }
+
 
 
     }
